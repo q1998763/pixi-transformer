@@ -1,5 +1,5 @@
 {
-  "name": "pixi-transformer",
+  "name": "@q1998763/pixi-transformer",
   "version": "0.1.0",
   "type": "module",
   "description": "Konva-style transform controls for PixiJS v8.",

@@ -3,7 +3,7 @@
 ## `PixiTransformer`
 
 ```ts
-import { PixiTransformer } from 'pixi-transformer';
+import { PixiTransformer } from '@q1998763/pixi-transformer';
 ```
 
 `PixiTransformer` extends Pixi's `Container`, so add it to the same scene graph as your editable objects.

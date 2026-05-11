@@ -1,8 +1,8 @@
-# pixi-transformer
+# @q1998763/pixi-transformer
 
 Konva-style transform controls for PixiJS v8.
 
-`pixi-transformer` gives Pixi display objects an editor-like bounding box with resize anchors, a rotate handle, multi-select transforms, centered scaling, keep-ratio scaling, and optional flip support.
+`@q1998763/pixi-transformer` gives Pixi display objects an editor-like bounding box with resize anchors, a rotate handle, multi-select transforms, centered scaling, keep-ratio scaling, and optional flip support.
 
 It is designed for canvas editors, whiteboards, design tools, image annotation tools, level editors, and any Pixi app where users need to move, scale, rotate, or flip objects directly on the stage.
 
@@ -20,7 +20,7 @@ It is designed for canvas editors, whiteboards, design tools, image annotation t
 ## Install
 
 ```bash
-npm install pixi-transformer pixi.js
+npm install @q1998763/pixi-transformer pixi.js
 ```
 
 Pixi is a peer dependency, so your app controls the Pixi version.
@@ -29,7 +29,7 @@ Pixi is a peer dependency, so your app controls the Pixi version.
 
 ```ts
 import { Application, Sprite } from 'pixi.js';
-import { PixiTransformer } from 'pixi-transformer';
+import { PixiTransformer } from '@q1998763/pixi-transformer';
 
 const app = new Application();
 await app.init({ resizeTo: window, background: '#202124' });

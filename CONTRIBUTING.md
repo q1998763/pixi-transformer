@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for helping improve `pixi-transformer`.
+Thanks for helping improve `@q1998763/pixi-transformer`.
 
 ## Local Setup
 
