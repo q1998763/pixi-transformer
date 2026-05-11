@@ -1,0 +1,263 @@
+import './demo.css';
+import { Application, Container, FederatedPointerEvent, Graphics, Point, Rectangle } from 'pixi.js';
+import { PixiTransformer } from './PixiTransformer';
+
+const stageHost = getElement<HTMLElement>('#stage');
+const keepRatioInput = getElement<HTMLInputElement>('#keepRatio');
+const centeredInput = getElement<HTMLInputElement>('#centered');
+const flipInput = getElement<HTMLInputElement>('#flip');
+const multiSelectButton = getElement<HTMLButtonElement>('#multiSelect');
+const clearSelectButton = getElement<HTMLButtonElement>('#clearSelect');
+
+const app = new Application();
+const world = new Container();
+const grid = new Graphics();
+const selection: Container[] = [];
+let targetDragState: {
+  pointerStart: Point;
+  startPositions: Point[];
+  startTransformerBox: ReturnType<PixiTransformer['getBox']>;
+} | null = null;
+const targets = [
+  createCard(180, 145, 170, 96, 0x38bdf8, 0x0f766e, -0.12),
+  createTicket(460, 180, 190, 112, 0xf59e0b, 0x7c2d12, 0.18),
+  createBadge(330, 390, 132, 132, 0xa78bfa, 0x4338ca, -0.28),
+];
+const transformer = new PixiTransformer({
+  anchorSize: 12,
+  borderStroke: 0x7dd3fc,
+  anchorStroke: 0x7dd3fc,
+  anchorFill: 0x0f172a,
+  // padding: 8,
+  rotateAnchorOffset: 44,
+});
+
+main().catch((error: unknown) => {
+  console.error(error);
+});
+
+async function main(): Promise<void> {
+  await app.init({
+    resizeTo: stageHost,
+    antialias: true,
+    background: '#0f1218',
+  });
+
+  stageHost.appendChild(app.canvas);
+  app.stage.eventMode = 'static';
+  app.stage.hitArea = new Rectangle(0, 0, app.screen.width, app.screen.height);
+  app.stage.addChild(world);
+  world.addChild(grid);
+
+  for (const target of targets) {
+    world.addChild(target);
+    target.on('pointerdown', (event) => {
+      event.stopPropagation();
+      if (event.shiftKey) {
+        selectTargets(toggleSelection(target));
+      } else if (!selection.includes(target)) {
+        selectTargets([target]);
+      }
+      beginTargetDrag(event);
+    });
+  }
+
+  world.addChild(transformer);
+  selectTargets([targets[0]]);
+
+  app.stage.on('pointerdown', () => {
+    selectTargets([]);
+  });
+  app.stage.on('globalpointermove', onStagePointerMove);
+  app.stage.on('pointerup', endTargetDrag);
+  app.stage.on('pointerupoutside', endTargetDrag);
+  app.stage.on('globalpointerup', endTargetDrag);
+  app.stage.on('globalpointerupoutside', endTargetDrag);
+  window.addEventListener('pointerup', endTargetDrag);
+  window.addEventListener('blur', endTargetDrag);
+
+  keepRatioInput.addEventListener('change', syncOptions);
+  centeredInput.addEventListener('change', syncOptions);
+  flipInput.addEventListener('change', syncOptions);
+  multiSelectButton.addEventListener('click', () => selectTargets(targets));
+  clearSelectButton.addEventListener('click', () => selectTargets([]));
+
+  app.ticker.add(() => {
+    app.stage.hitArea = new Rectangle(0, 0, app.screen.width, app.screen.height);
+    drawGrid();
+  });
+}
+
+function getElement<T extends Element>(selector: string): T {
+  const element = document.querySelector<T>(selector);
+
+  if (!element) {
+    throw new Error(`Demo DOM is missing ${selector}.`);
+  }
+
+  return element;
+}
+
+function syncOptions(): void {
+  transformer.options.keepRatio = keepRatioInput.checked;
+  transformer.options.centeredScaling = centeredInput.checked;
+  transformer.options.flipEnabled = flipInput.checked;
+  transformer.update();
+}
+
+function beginTargetDrag(event: FederatedPointerEvent): void {
+  if (selection.length === 0) {
+    return;
+  }
+
+  targetDragState = {
+    pointerStart: event.global.clone(),
+    startPositions: selection.map((target) => target.position.clone()),
+    startTransformerBox: transformer.getBox(),
+  };
+}
+
+function onStagePointerMove(event: FederatedPointerEvent): void {
+  if (!targetDragState) {
+    return;
+  }
+
+  if (isPrimaryButtonReleased(event)) {
+    endTargetDrag();
+    return;
+  }
+
+  const dx = event.global.x - targetDragState.pointerStart.x;
+  const dy = event.global.y - targetDragState.pointerStart.y;
+
+  selection.forEach((target, index) => {
+    target.position.set(
+      targetDragState!.startPositions[index].x + dx,
+      targetDragState!.startPositions[index].y + dy,
+    );
+  });
+
+  if (targetDragState.startTransformerBox) {
+    transformer.setBox({
+      ...targetDragState.startTransformerBox,
+      x: targetDragState.startTransformerBox.x + dx,
+      y: targetDragState.startTransformerBox.y + dy,
+    });
+  } else {
+    transformer.update();
+  }
+}
+
+function endTargetDrag(): void {
+  if (!targetDragState) {
+    return;
+  }
+
+  targetDragState = null;
+}
+
+function isPrimaryButtonReleased(event: FederatedPointerEvent): boolean {
+  const eventWithButtons = event as FederatedPointerEvent & { buttons?: number };
+  return typeof eventWithButtons.buttons === 'number' && eventWithButtons.buttons === 0;
+}
+
+function selectTargets(nextSelection: Container[]): void {
+  selection.length = 0;
+  selection.push(...nextSelection);
+  transformer.nodes(selection);
+
+  for (const target of targets) {
+    target.alpha = selection.includes(target) ? 1 : 0.72;
+  }
+}
+
+function toggleSelection(target: Container): Container[] {
+  if (selection.includes(target)) {
+    return selection.filter((item) => item !== target);
+  }
+
+  return [...selection, target];
+}
+
+function createCard(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  color: number,
+  shadow: number,
+  rotation: number,
+): Container {
+  const card = new Graphics();
+  card.roundRect(0, 0, width, height, 8).fill(color);
+  card.roundRect(14, 18, width - 28, 16, 5).fill(0xffffff, 0.45);
+  card.roundRect(14, 48, width * 0.52, 12, 5).fill(shadow, 0.55);
+  card.roundRect(14, 70, width * 0.72, 10, 5).fill(0xffffff, 0.35);
+  return makeTarget(card, x, y, rotation);
+}
+
+function createTicket(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  color: number,
+  shadow: number,
+  rotation: number,
+): Container {
+  const ticket = new Graphics();
+  ticket.roundRect(0, 0, width, height, 8).fill(color);
+  ticket.circle(0, height / 2, 17).cut();
+  ticket.circle(width, height / 2, 17).cut();
+  ticket.rect(width * 0.62, 16, 2, height - 32).fill(shadow, 0.5);
+  ticket.circle(44, 46, 20).fill(0xffffff, 0.42);
+  ticket.roundRect(78, 36, 68, 12, 4).fill(0xffffff, 0.42);
+  ticket.roundRect(78, 58, 46, 10, 4).fill(shadow, 0.5);
+  return makeTarget(ticket, x, y, rotation);
+}
+
+function createBadge(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  color: number,
+  shadow: number,
+  rotation: number,
+): Container {
+  const badge = new Graphics();
+  badge.circle(width / 2, height / 2, width / 2).fill(color);
+  badge.circle(width / 2, height / 2, width / 2 - 16).stroke({ color: 0xffffff, width: 4, alpha: 0.5 });
+  badge.star(width / 2, height / 2, 5, 36, 16).fill(shadow, 0.76);
+  return makeTarget(badge, x, y, rotation);
+}
+
+function makeTarget(graphic: Graphics, x: number, y: number, rotation: number): Graphics {
+  graphic.position.set(x, y);
+  graphic.rotation = rotation;
+  graphic.eventMode = 'static';
+  graphic.cursor = 'pointer';
+  graphic.hitArea = new Rectangle(0, 0, graphic.width, graphic.height);
+  return graphic;
+}
+
+function drawGrid(): void {
+  const width = app.screen.width;
+  const height = app.screen.height;
+  const step = 32;
+
+  grid.clear();
+
+  for (let x = 0; x <= width; x += step) {
+    grid.moveTo(x, 0).lineTo(x, height);
+  }
+
+  for (let y = 0; y <= height; y += step) {
+    grid.moveTo(0, y).lineTo(width, y);
+  }
+
+  grid.stroke({ color: 0xffffff, width: 1, alpha: 0.055 });
+
+  const origin = new Point(24, 24);
+  grid.circle(origin.x, origin.y, 4).fill(0x7dd3fc, 0.8);
+}

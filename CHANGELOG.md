@@ -1,0 +1,8 @@
+# Changelog
+
+## 0.1.0
+
+- Initial PixiJS v8 transformer implementation
+- Single-node and multi-node selection
+- Move, resize, rotate, flip, keep-ratio, and centered scaling support
+- Demo page with interactive Pixi graphics

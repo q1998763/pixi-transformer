@@ -1,0 +1,52 @@
+{
+  "name": "pixi-transformer",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Konva-style transform controls for PixiJS v8.",
+  "license": "MIT",
+  "author": "q1998763",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/q1998763/pixi-transformer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/q1998763/pixi-transformer/issues"
+  },
+  "homepage": "https://github.com/q1998763/pixi-transformer#readme",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "pixi",
+    "pixijs",
+    "pixi.js",
+    "transformer",
+    "transform-controls",
+    "canvas",
+    "editor"
+  ],
+  "sideEffects": false,
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -p tsconfig.json",
+    "demo:build": "vite build"
+  },
+  "peerDependencies": {
+    "pixi.js": "^8.0.0"
+  },
+  "devDependencies": {
+    "pixi.js": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vite": "^5.0.0"
+  }
+}

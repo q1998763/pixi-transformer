@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pixi Transformer Demo</title>
+    <script type="module" src="/src/demo.ts"></script>
+  </head>
+  <body>
+    <div id="app">
+      <aside class="panel">
+        <div>
+          <p class="eyebrow">PixiJS v8</p>
+          <h1>Transformer Demo</h1>
+        </div>
+        <div class="controls">
+          <label><input id="keepRatio" type="checkbox" /> Keep ratio</label>
+          <label><input id="centered" type="checkbox" /> Centered scaling</label>
+          <label><input id="flip" type="checkbox" checked /> Allow flip</label>
+          <button id="multiSelect" type="button">Select group</button>
+          <button id="clearSelect" type="button">Clear</button>
+        </div>
+      </aside>
+      <main id="stage"></main>
+    </div>
+  </body>
+</html>
