@@ -117,6 +117,7 @@ new PixiTransformer({
   rotateAnchorOffset,
   padding,
   anchorSize,
+  anchorCornerRadius,
   anchorFill,
   anchorStroke,
   anchorStrokeWidth,

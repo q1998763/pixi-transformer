@@ -34,6 +34,7 @@ export interface PixiTransformerOptions {
   rotateAnchorOffset?: number;
   padding?: number;
   anchorSize?: number;
+  anchorCornerRadius?: number;
   anchorFill?: number;
   anchorStroke?: number;
   anchorStrokeWidth?: number;
@@ -103,6 +104,7 @@ export class PixiTransformer extends Container {
       rotateAnchorOffset: options.rotateAnchorOffset ?? 38,
       padding: options.padding ?? 0,
       anchorSize: options.anchorSize ?? 10,
+      anchorCornerRadius: options.anchorCornerRadius ?? 0,
       anchorFill: options.anchorFill ?? 0xffffff,
       anchorStroke: options.anchorStroke ?? 0x1a73e8,
       anchorStrokeWidth: options.anchorStrokeWidth ?? 2,
@@ -236,10 +238,16 @@ export class PixiTransformer extends Container {
     }
 
     const size = this.options.anchorSize;
+    const radius = Math.min(this.options.anchorCornerRadius, size / 2);
     anchor.clear();
-    if (round) {
+    if (round || radius >= size / 2) {
       anchor
         .circle(0, 0, size * 0.55)
+        .fill(this.options.anchorFill)
+        .stroke({ color: this.options.anchorStroke, width: this.options.anchorStrokeWidth });
+    } else if (radius > 0) {
+      anchor
+        .roundRect(-size / 2, -size / 2, size, size, radius)
         .fill(this.options.anchorFill)
         .stroke({ color: this.options.anchorStroke, width: this.options.anchorStrokeWidth });
     } else {
@@ -554,34 +562,9 @@ function getSingleTargetBox(target: Container, padding: number): TransformerBox 
   const world = getWorldMatrix(target);
   const topLeft = world.apply(new Point(local.x, local.y));
   const topRight = world.apply(new Point(local.x + local.width, local.y));
-  const bottomRight = world.apply(new Point(local.x + local.width, local.y + local.height));
   const bottomLeft = world.apply(new Point(local.x, local.y + local.height));
-  const ordered = orderQuadPoints([topLeft, topRight, bottomRight, bottomLeft]);
-  const [boxTopLeft, boxTopRight, boxBottomRight, boxBottomLeft] = ordered;
-  const candidates: Array<{
-    topLeft: Point;
-    widthVector: Point;
-    heightVector: Point;
-  }> = [
-    {
-      topLeft: boxTopLeft,
-      widthVector: sub(boxTopRight, boxTopLeft),
-      heightVector: sub(boxBottomLeft, boxTopLeft),
-    },
-    {
-      topLeft: boxTopRight,
-      widthVector: sub(boxBottomRight, boxTopRight),
-      heightVector: sub(boxTopLeft, boxTopRight),
-    },
-  ];
-  const candidate = candidates.reduce((best, item) =>
-    Math.hypot(item.widthVector.x, item.widthVector.y) >= Math.hypot(best.widthVector.x, best.widthVector.y)
-      ? item
-      : best,
-  );
-  const topLeftPoint = candidate.topLeft;
-  const widthVector = candidate.widthVector;
-  const heightVector = candidate.heightVector;
+  const widthVector = sub(topRight, topLeft);
+  const heightVector = sub(bottomLeft, topLeft);
   const width = Math.hypot(widthVector.x, widthVector.y);
   const rotation = Math.atan2(widthVector.y, widthVector.x);
   const xAxis = unitX(rotation);
@@ -590,8 +573,8 @@ function getSingleTargetBox(target: Container, padding: number): TransformerBox 
   const heightSign = Math.sign(signedHeight || 1);
 
   return {
-    x: topLeftPoint.x - xAxis.x * padding - yAxis.x * padding * heightSign,
-    y: topLeftPoint.y - xAxis.y * padding - yAxis.y * padding * heightSign,
+    x: topLeft.x - xAxis.x * padding - yAxis.x * padding * heightSign,
+    y: topLeft.y - xAxis.y * padding - yAxis.y * padding * heightSign,
     width: width + padding * 2,
     height: signedHeight + heightSign * padding * 2,
     rotation,
@@ -760,27 +743,6 @@ function getBoxCorners(box: TransformerBox): [Point, Point, Point, Point] {
 function getBoxCenter(box: TransformerBox): Point {
   const corners = getBoxCorners(box);
   return midpoint(corners[0], corners[2]);
-}
-
-function orderQuadPoints(points: [Point, Point, Point, Point]): [Point, Point, Point, Point] {
-  const center = new Point(
-    points.reduce((sum, point) => sum + point.x, 0) / points.length,
-    points.reduce((sum, point) => sum + point.y, 0) / points.length,
-  );
-  const sorted = [...points].sort(
-    (a, b) => Math.atan2(a.y - center.y, a.x - center.x) - Math.atan2(b.y - center.y, b.x - center.x),
-  );
-  const topStart = sorted.reduce((bestIndex, point, index) => {
-    const best = sorted[bestIndex];
-    if (point.y < best.y - EPSILON || (Math.abs(point.y - best.y) < EPSILON && point.x < best.x)) {
-      return index;
-    }
-
-    return bestIndex;
-  }, 0);
-  const rotated = [...sorted.slice(topStart), ...sorted.slice(0, topStart)];
-
-  return [rotated[0], rotated[1], rotated[2], rotated[3]];
 }
 
 function boxFromCenter(center: Point, width: number, height: number, rotation: number): TransformerBox {

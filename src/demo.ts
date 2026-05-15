@@ -11,9 +11,14 @@ const multiSelectButton = getElement<HTMLButtonElement>('#multiSelect');
 const clearSelectButton = getElement<HTMLButtonElement>('#clearSelect');
 const openSandboxButton = getElement<HTMLButtonElement>('#openSandbox');
 const fileTabs = Array.from(document.querySelectorAll<HTMLButtonElement>('.tab'));
+const exampleTabs = Array.from(document.querySelectorAll<HTMLButtonElement>('.example-tab'));
 const sandboxUrl = 'https://codesandbox.io/p/github/q1998763/pixi-transformer/main?file=%2Fsrc%2Fdemo.ts';
-const sampleFiles: Record<string, string> = {
-  'index.html': `<!doctype html>
+type DemoExample = 'basic' | 'styling';
+
+let activeExample: DemoExample = 'basic';
+let activeFileName = 'src/main.ts';
+
+const sharedIndexHtml = `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -26,8 +31,12 @@ const sampleFiles: Record<string, string> = {
       <div id="stage"></div>
     </div>
   </body>
-</html>`,
-  'src/main.ts': `import { Application, Container, Graphics } from 'pixi.js';
+</html>`;
+
+const sampleFiles: Record<DemoExample, Record<string, string>> = {
+  basic: {
+    'index.html': sharedIndexHtml,
+    'src/main.ts': `import { Application, Container, Graphics } from 'pixi.js';
 import { PixiTransformer } from '@q1998763/pixi-transformer';
 
 const host = document.querySelector('#stage') as HTMLElement;
@@ -81,22 +90,61 @@ function createShape(
   shape.cursor = 'pointer';
   return shape;
 }`,
+  },
+  styling: {
+    'index.html': sharedIndexHtml,
+    'src/main.ts': `import { Application, Graphics } from 'pixi.js';
+import { PixiTransformer } from '@q1998763/pixi-transformer';
+
+const host = document.querySelector('#stage') as HTMLElement;
+const app = new Application();
+await app.init({
+  resizeTo: host,
+  antialias: true,
+  background: '#ffffff',
+});
+
+host.appendChild(app.canvas);
+
+const rect = new Graphics();
+rect.rect(0, 0, 100, 90).fill(0xffe500);
+rect.position.set(260, 160);
+rect.rotation = 0.18;
+rect.eventMode = 'static';
+rect.cursor = 'pointer';
+app.stage.addChild(rect);
+
+const transformer = new PixiTransformer({
+  nodes: [rect],
+  borderStroke: 0x000000,
+  borderStrokeWidth: 4,
+  anchorFill: 0xffffff,
+  anchorStroke: 0x000000,
+  anchorStrokeWidth: 4,
+  anchorSize: 20,
+  anchorCornerRadius: 50,
+  rotateAnchorOffset: 58,
+});
+
+app.stage.addChild(transformer);
+
+rect.on('pointerdown', (event) => {
+  event.stopPropagation();
+  transformer.nodes([rect]);
+});`,
+  },
 };
 
 const app = new Application();
 const world = new Container();
 const grid = new Graphics();
 const selection: Container[] = [];
+let targets: Container[] = [];
 let targetDragState: {
   pointerStart: Point;
   startPositions: Point[];
   startTransformerBox: ReturnType<PixiTransformer['getBox']>;
 } | null = null;
-const targets = [
-  createCard(180, 145, 170, 96, 0x38bdf8, 0x0f766e, -0.12),
-  createTicket(460, 180, 190, 112, 0xf59e0b, 0x7c2d12, 0.18),
-  createBadge(330, 390, 132, 132, 0xa78bfa, 0x4338ca, -0.28),
-];
 const transformer = new PixiTransformer({
   anchorSize: 12,
   borderStroke: 0x7dd3fc,
@@ -111,7 +159,7 @@ main().catch((error: unknown) => {
 });
 
 async function main(): Promise<void> {
-  renderCode('src/main.ts');
+  renderCode(activeFileName);
 
   await app.init({
     resizeTo: stageHost,
@@ -123,23 +171,6 @@ async function main(): Promise<void> {
   app.stage.eventMode = 'static';
   app.stage.hitArea = new Rectangle(0, 0, app.screen.width, app.screen.height);
   app.stage.addChild(world);
-  world.addChild(grid);
-
-  for (const target of targets) {
-    world.addChild(target);
-    target.on('pointerdown', (event) => {
-      event.stopPropagation();
-      if (event.shiftKey) {
-        selectTargets(toggleSelection(target));
-      } else if (!selection.includes(target)) {
-        selectTargets([target]);
-      }
-      beginTargetDrag(event);
-    });
-  }
-
-  world.addChild(transformer);
-  selectTargets([targets[0]]);
 
   app.stage.on('pointerdown', () => {
     selectTargets([]);
@@ -166,10 +197,23 @@ async function main(): Promise<void> {
       const fileName = tab.dataset.file;
 
       if (fileName) {
+        activeFileName = fileName;
         renderCode(fileName);
       }
     });
   }
+
+  for (const tab of exampleTabs) {
+    tab.addEventListener('click', () => {
+      const example = tab.dataset.example as DemoExample | undefined;
+
+      if (example) {
+        showExample(example);
+      }
+    });
+  }
+
+  showExample(activeExample);
 
   app.ticker.add(() => {
     app.stage.hitArea = new Rectangle(0, 0, app.screen.width, app.screen.height);
@@ -177,8 +221,75 @@ async function main(): Promise<void> {
   });
 }
 
+function showExample(example: DemoExample): void {
+  activeExample = example;
+  activeFileName = 'src/main.ts';
+  renderCode(activeFileName);
+  resetScene(example);
+
+  for (const tab of exampleTabs) {
+    tab.classList.toggle('is-active', tab.dataset.example === example);
+  }
+}
+
+function resetScene(example: DemoExample): void {
+  targetDragState = null;
+  selection.length = 0;
+  transformer.detach();
+  world.removeChildren();
+  world.addChild(grid);
+  targets = example === 'styling' ? createStylingTargets() : createBasicTargets();
+  applyExampleTransformerOptions(example);
+
+  for (const target of targets) {
+    world.addChild(target);
+    target.on('pointerdown', (event) => {
+      event.stopPropagation();
+      if (event.shiftKey) {
+        selectTargets(toggleSelection(target));
+      } else if (!selection.includes(target)) {
+        selectTargets([target]);
+      }
+      beginTargetDrag(event);
+    });
+  }
+
+  world.addChild(transformer);
+  selectTargets([targets[0]]);
+  syncOptions();
+}
+
+function applyExampleTransformerOptions(example: DemoExample): void {
+  Object.assign(
+    transformer.options,
+    example === 'styling'
+      ? {
+          anchorSize: 20,
+          anchorCornerRadius: 50,
+          anchorFill: 0xffffff,
+          anchorStroke: 0x000000,
+          anchorStrokeWidth: 4,
+          borderStroke: 0x000000,
+          borderStrokeWidth: 4,
+          rotateAnchorOffset: 58,
+          padding: 0,
+        }
+      : {
+          anchorSize: 12,
+          anchorCornerRadius: 0,
+          anchorFill: 0x0f172a,
+          anchorStroke: 0x7dd3fc,
+          anchorStrokeWidth: 2,
+          borderStroke: 0x7dd3fc,
+          borderStrokeWidth: 1.5,
+          rotateAnchorOffset: 44,
+          padding: 0,
+        },
+  );
+}
+
 function renderCode(fileName: string): void {
-  codeView.innerHTML = highlightCode(sampleFiles[fileName] ?? '', fileName);
+  codeView.innerHTML = highlightCode(sampleFiles[activeExample][fileName] ?? '', fileName);
 
   for (const tab of fileTabs) {
     tab.classList.toggle('is-active', tab.dataset.file === fileName);
@@ -235,9 +346,7 @@ function escapeHtml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+    .replace(/>/g, '&gt;');
 }
 
 function getElement<T extends Element>(selector: string): T {
@@ -329,6 +438,20 @@ function toggleSelection(target: Container): Container[] {
   }
 
   return [...selection, target];
+}
+
+function createBasicTargets(): Container[] {
+  return [
+    createCard(180, 145, 170, 96, 0x38bdf8, 0x0f766e, -0.12),
+    createTicket(460, 180, 190, 112, 0xf59e0b, 0x7c2d12, 0.18),
+    createBadge(330, 390, 132, 132, 0xa78bfa, 0x4338ca, -0.28),
+  ];
+}
+
+function createStylingTargets(): Container[] {
+  const rect = new Graphics();
+  rect.rect(0, 0, 100, 90).fill(0xffe500);
+  return [makeTarget(rect, 300, 190, 0.18)];
 }
 
 function createCard(

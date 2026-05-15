@@ -85,6 +85,12 @@ Resize anchor size in pixels.
 
 Default: `10`
 
+### `anchorCornerRadius?: number`
+
+Corner radius for resize anchors. Set it to at least half of `anchorSize` to render round anchors.
+
+Default: `0`
+
 ### `anchorFill?: number`
 
 Anchor fill color.
