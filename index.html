@@ -8,20 +8,32 @@
   </head>
   <body>
     <div id="app">
-      <aside class="panel">
+      <header class="demo-header">
         <div>
           <p class="eyebrow">PixiJS v8</p>
-          <h1>Transformer Demo</h1>
+          <h1>Pixi Transformer Examples</h1>
         </div>
-        <div class="controls">
+        <div class="controls" aria-label="Transformer options">
           <label><input id="keepRatio" type="checkbox" /> Keep ratio</label>
           <label><input id="centered" type="checkbox" /> Centered scaling</label>
           <label><input id="flip" type="checkbox" checked /> Allow flip</label>
           <button id="multiSelect" type="button">Select group</button>
           <button id="clearSelect" type="button">Clear</button>
         </div>
-      </aside>
-      <main id="stage"></main>
+      </header>
+      <main class="sandbox">
+        <section class="editor" aria-label="Example source code">
+          <div class="tabs">
+            <button class="tab is-active" type="button" data-file="index.html">index.html</button>
+            <button class="tab" type="button" data-file="src/main.ts">src/main.ts</button>
+          </div>
+          <pre class="code-view"><code id="codeView"></code></pre>
+        </section>
+        <section class="preview" aria-label="Live Pixi example">
+          <div id="stage"></div>
+          <button id="openSandbox" class="sandbox-link" type="button">Open Sandbox</button>
+        </section>
+      </main>
     </div>
   </body>
 </html>

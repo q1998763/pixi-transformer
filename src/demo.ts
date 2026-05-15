@@ -3,11 +3,85 @@ import { Application, Container, FederatedPointerEvent, Graphics, Point, Rectang
 import { PixiTransformer } from './PixiTransformer';
 
 const stageHost = getElement<HTMLElement>('#stage');
+const codeView = getElement<HTMLElement>('#codeView');
 const keepRatioInput = getElement<HTMLInputElement>('#keepRatio');
 const centeredInput = getElement<HTMLInputElement>('#centered');
 const flipInput = getElement<HTMLInputElement>('#flip');
 const multiSelectButton = getElement<HTMLButtonElement>('#multiSelect');
 const clearSelectButton = getElement<HTMLButtonElement>('#clearSelect');
+const openSandboxButton = getElement<HTMLButtonElement>('#openSandbox');
+const fileTabs = Array.from(document.querySelectorAll<HTMLButtonElement>('.tab'));
+const sandboxUrl = 'https://codesandbox.io/p/github/q1998763/pixi-transformer/main?file=%2Fsrc%2Fdemo.ts';
+const sampleFiles: Record<string, string> = {
+  'index.html': `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pixi Transformer Demo</title>
+    <script type="module" src="/src/demo.ts"></script>
+  </head>
+  <body>
+    <div id="app">
+      <div id="stage"></div>
+    </div>
+  </body>
+</html>`,
+  'src/main.ts': `import { Application, Container, Graphics } from 'pixi.js';
+import { PixiTransformer } from '@q1998763/pixi-transformer';
+
+const host = document.querySelector('#stage') as HTMLElement;
+const app = new Application();
+await app.init({
+  resizeTo: host,
+  antialias: true,
+  background: '#ffffff',
+});
+
+host.appendChild(app.canvas);
+
+const targets = [
+  createShape(180, 145, 170, 96, 0x38bdf8, -0.12),
+  createShape(460, 180, 190, 112, 0xf59e0b, 0.18),
+  createShape(330, 390, 132, 132, 0xa78bfa, -0.28),
+];
+
+const transformer = new PixiTransformer({
+  nodes: [targets[0]],
+  anchorSize: 12,
+  borderStroke: 0x7dd3fc,
+  anchorStroke: 0x7dd3fc,
+  anchorFill: 0x0f172a,
+  rotateAnchorOffset: 44,
+});
+
+for (const target of targets) {
+  app.stage.addChild(target);
+  target.on('pointerdown', (event) => {
+    event.stopPropagation();
+    transformer.nodes(event.shiftKey ? targets : [target]);
+  });
+}
+
+app.stage.addChild(transformer);
+
+function createShape(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  color: number,
+  rotation: number,
+): Container {
+  const shape = new Graphics();
+  shape.roundRect(0, 0, width, height, 8).fill(color);
+  shape.position.set(x, y);
+  shape.rotation = rotation;
+  shape.eventMode = 'static';
+  shape.cursor = 'pointer';
+  return shape;
+}`,
+};
 
 const app = new Application();
 const world = new Container();
@@ -37,10 +111,12 @@ main().catch((error: unknown) => {
 });
 
 async function main(): Promise<void> {
+  renderCode('src/main.ts');
+
   await app.init({
     resizeTo: stageHost,
     antialias: true,
-    background: '#0f1218',
+    background: '#ffffff',
   });
 
   stageHost.appendChild(app.canvas);
@@ -81,11 +157,87 @@ async function main(): Promise<void> {
   flipInput.addEventListener('change', syncOptions);
   multiSelectButton.addEventListener('click', () => selectTargets(targets));
   clearSelectButton.addEventListener('click', () => selectTargets([]));
+  openSandboxButton.addEventListener('click', () => {
+    window.open(sandboxUrl, '_blank', 'noopener,noreferrer');
+  });
+
+  for (const tab of fileTabs) {
+    tab.addEventListener('click', () => {
+      const fileName = tab.dataset.file;
+
+      if (fileName) {
+        renderCode(fileName);
+      }
+    });
+  }
 
   app.ticker.add(() => {
     app.stage.hitArea = new Rectangle(0, 0, app.screen.width, app.screen.height);
     drawGrid();
   });
+}
+
+function renderCode(fileName: string): void {
+  codeView.innerHTML = highlightCode(sampleFiles[fileName] ?? '', fileName);
+
+  for (const tab of fileTabs) {
+    tab.classList.toggle('is-active', tab.dataset.file === fileName);
+  }
+}
+
+function highlightCode(source: string, fileName: string): string {
+  return source
+    .split('\n')
+    .map((line) => highlightLine(line, fileName.endsWith('.html') ? 'html' : 'ts'))
+    .join('\n');
+}
+
+function highlightLine(line: string, language: 'html' | 'ts'): string {
+  const tokens =
+    language === 'html'
+      ? /(&lt;\/?[\w-]+|\/?&gt;|[\w-]+(?==)|"[^"]*"|'[^']*'|&lt;!doctype html&gt;)/gi
+      : /(\/\/.*$|`[^`]*`|"[^"]*"|'[^']*'|\b(?:await|const|for|from|function|import|new|return|true|type)\b|\b(?:Application|Container|Graphics|PixiTransformer|HTMLElement)\b|\b\d+(?:\.\d+)?\b)/g;
+
+  return escapeHtml(line).replace(tokens, (token) => {
+    if (/^\/\//.test(token)) {
+      return wrapToken(token, 'comment');
+    }
+
+    if (/^['"`]/.test(token) || /^&quot;/.test(token)) {
+      return wrapToken(token, 'string');
+    }
+
+    if (/^\d/.test(token)) {
+      return wrapToken(token, 'number');
+    }
+
+    if (/^(&lt;|\/?&gt;)/.test(token)) {
+      return wrapToken(token, 'tag');
+    }
+
+    if (/^(Application|Container|Graphics|PixiTransformer|HTMLElement)$/.test(token)) {
+      return wrapToken(token, 'type');
+    }
+
+    if (language === 'html' && /^[\w-]+$/.test(token)) {
+      return wrapToken(token, 'attr');
+    }
+
+    return wrapToken(token, 'keyword');
+  });
+}
+
+function wrapToken(token: string, type: string): string {
+  return `<span class="token-${type}">${token}</span>`;
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 function getElement<T extends Element>(selector: string): T {
@@ -256,8 +408,8 @@ function drawGrid(): void {
     grid.moveTo(0, y).lineTo(width, y);
   }
 
-  grid.stroke({ color: 0xffffff, width: 1, alpha: 0.055 });
+  grid.stroke({ color: 0x94a3b8, width: 1, alpha: 0.12 });
 
   const origin = new Point(24, 24);
-  grid.circle(origin.x, origin.y, 4).fill(0x7dd3fc, 0.8);
+  grid.circle(origin.x, origin.y, 4).fill(0x2563eb, 0.72);
 }
