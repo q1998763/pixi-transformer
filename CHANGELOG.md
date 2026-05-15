@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2
+
+- Fix npm trusted publishing workflow runtime requirements
+
 ## 0.1.1
 
 - Rework the demo layout with a sidebar example menu
