@@ -4,11 +4,6 @@ import { PixiTransformer } from './PixiTransformer';
 
 const stageHost = getElement<HTMLElement>('#stage');
 const codeView = getElement<HTMLElement>('#codeView');
-const keepRatioInput = getElement<HTMLInputElement>('#keepRatio');
-const centeredInput = getElement<HTMLInputElement>('#centered');
-const flipInput = getElement<HTMLInputElement>('#flip');
-const multiSelectButton = getElement<HTMLButtonElement>('#multiSelect');
-const clearSelectButton = getElement<HTMLButtonElement>('#clearSelect');
 const openSandboxButton = getElement<HTMLButtonElement>('#openSandbox');
 const fileTabs = Array.from(document.querySelectorAll<HTMLButtonElement>('.tab'));
 const exampleTabs = Array.from(document.querySelectorAll<HTMLButtonElement>('.example-tab'));
@@ -183,11 +178,6 @@ async function main(): Promise<void> {
   window.addEventListener('pointerup', endTargetDrag);
   window.addEventListener('blur', endTargetDrag);
 
-  keepRatioInput.addEventListener('change', syncOptions);
-  centeredInput.addEventListener('change', syncOptions);
-  flipInput.addEventListener('change', syncOptions);
-  multiSelectButton.addEventListener('click', () => selectTargets(targets));
-  clearSelectButton.addEventListener('click', () => selectTargets([]));
   openSandboxButton.addEventListener('click', () => {
     window.open(sandboxUrl, '_blank', 'noopener,noreferrer');
   });
@@ -256,7 +246,6 @@ function resetScene(example: DemoExample): void {
 
   world.addChild(transformer);
   selectTargets([targets[0]]);
-  syncOptions();
 }
 
 function applyExampleTransformerOptions(example: DemoExample): void {
@@ -357,13 +346,6 @@ function getElement<T extends Element>(selector: string): T {
   }
 
   return element;
-}
-
-function syncOptions(): void {
-  transformer.options.keepRatio = keepRatioInput.checked;
-  transformer.options.centeredScaling = centeredInput.checked;
-  transformer.options.flipEnabled = flipInput.checked;
-  transformer.update();
 }
 
 function beginTargetDrag(event: FederatedPointerEvent): void {

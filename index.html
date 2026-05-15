@@ -13,30 +13,25 @@
           <p class="eyebrow">PixiJS v8</p>
           <h1>Pixi Transformer Examples</h1>
         </div>
-        <nav class="example-tabs" aria-label="Demo examples">
+      </header>
+      <main class="workspace">
+        <nav class="example-menu" aria-label="Demo examples">
           <button class="example-tab is-active" type="button" data-example="basic">Basic</button>
           <button class="example-tab" type="button" data-example="styling">Styling</button>
         </nav>
-        <div class="controls" aria-label="Transformer options">
-          <label><input id="keepRatio" type="checkbox" /> Keep ratio</label>
-          <label><input id="centered" type="checkbox" /> Centered scaling</label>
-          <label><input id="flip" type="checkbox" checked /> Allow flip</label>
-          <button id="multiSelect" type="button">Select group</button>
-          <button id="clearSelect" type="button">Clear</button>
+        <div class="sandbox">
+          <section class="editor" aria-label="Example source code">
+            <div class="tabs">
+              <button class="tab is-active" type="button" data-file="index.html">index.html</button>
+              <button class="tab" type="button" data-file="src/main.ts">src/main.ts</button>
+            </div>
+            <pre class="code-view"><code id="codeView"></code></pre>
+          </section>
+          <section class="preview" aria-label="Live Pixi example">
+            <div id="stage"></div>
+            <button id="openSandbox" class="sandbox-link" type="button">Open Sandbox</button>
+          </section>
         </div>
-      </header>
-      <main class="sandbox">
-        <section class="editor" aria-label="Example source code">
-          <div class="tabs">
-            <button class="tab is-active" type="button" data-file="index.html">index.html</button>
-            <button class="tab" type="button" data-file="src/main.ts">src/main.ts</button>
-          </div>
-          <pre class="code-view"><code id="codeView"></code></pre>
-        </section>
-        <section class="preview" aria-label="Live Pixi example">
-          <div id="stage"></div>
-          <button id="openSandbox" class="sandbox-link" type="button">Open Sandbox</button>
-        </section>
       </main>
     </div>
   </body>

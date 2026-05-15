@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1
+
+- Rework the demo layout with a sidebar example menu
+- Simplify the demo controls and example presentation
+
 ## 0.1.0
 
 - Initial PixiJS v8 transformer implementation
